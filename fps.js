@@ -13,7 +13,7 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 let score=0,shots=0,hits=0,combo=0,remaining=roundLength,active=false,lastShoot=0,best=0;
 try{best=Number(localStorage.getItem("nnb-local-best-001"))||0;}catch{}
 $("#best").textContent=String(best);
-function updateHud(){scoreEl.textContent=score;timeEl.textContent=Math.ceil(remaining);comboEl.textContent=combo;accuracyEl.textContent=shots?Math.round(100*hits/shots)+"%":"—";timeEl.classList.toggle("danger",remaining<=10);}
+function updateHud(){scoreEl.firstChild.nodeValue=String(score);timeEl.firstChild.nodeValue=String(Math.ceil(remaining));comboEl.firstChild.nodeValue=String(combo);accuracyEl.firstChild.nodeValue=shots?Math.round(100*hits/shots)+"%":"—";timeEl.classList.toggle("danger",remaining<=10);}
 function noticeHit(text){notice.textContent=text;notice.dataset.at=String(performance.now());$("#crosshair").classList.add("hit");}
 function endRound(exited=false){
  if(!active)return;active=false;
