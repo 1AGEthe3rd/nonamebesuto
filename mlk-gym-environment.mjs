@@ -198,14 +198,23 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
     [-18, 15, 8, 0x7e7668], [0, 17, 9, 0x665e56], [18, 15, 8, 0x777a74]
   ]) {
     box(width, height, 2.6, x, height / 2 - .2, 53.1, color);
-    box(width - .5, .25, .19, x, height - 1.1, 51.68, 0x333d42);
+    brickWall(width - .12, height - .6, x, height / 2 - .25, 51.77, Math.PI);
+    box(width - .5, .25, .19, x, height - 1.1, 51.65, 0x424947);
     for (let wx = x - width / 2 + 2.5; wx < x + width / 2 - 1; wx += 3.4) {
-      box(2.3, 2.6, .17, wx, 2.45, 51.65, 0x334a52);
-      box(2.1, .12, .18, wx, 2.35, 51.54, 0xc3ccbe);
+      box(2.5, 3.05, .23, wx, 2.60, 51.60, 0x333e43);
+      box(2.25, 2.75, .07, wx, 2.63, 51.47, 0x8eabb2, {
+        emissive:0x3e5c68, emissiveIntensity:.38, metalness:.18, roughness:.27
+      });
+      box(2.45, .10, .25, wx, 2.58, 51.43, 0xc3c8bf);
+      box(.09, 2.85, .26, wx, 2.62, 51.40, 0xc3c8bf);
     }
   }
-  const street = text('NE MLK JR BLVD  /  PORTLAND', 0, 6.3, 51.5, .26, '#eee9dc', Math.PI);
-  street.position.z = 51.50;
+  // A modest street-name marker is located outside, not attached to a real address.
+  box(.10, 4.2, .10, 9.1, 2.05, 24.5, 0x666c67);
+  box(4.1, .72, .20, 7.15, 4.09, 24.5, 0x225244);
+  text('NE MLK JR BLVD', 7.15, 4.08, 24.37, .23, '#edf4e7', Math.PI);
+  box(.10, 3.2, .10, -9.1, 1.55, 24, 0x626762);
+  box(.15, .54, .15, -9.1, 3.28, 24, 0xb5aa89);
 
   // Local gym texture: equipment storage, a corner bench and original poster art.
   // The playable bag, lockers and ring are deliberately NOT recreated or moved.
@@ -254,6 +263,7 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
   const daylight = new THREE.DirectionalLight(0xdbe9e9, .60);
   daylight.position.set(2, 16, 30);
   scene.add(daylight);
+  scene.add(new THREE.HemisphereLight(0xffe7ca, 0x424d46, .45));
   light(0xffedcc, 28, -4.5, 5.85, 8.5, 25);
   light(0xffe1b4, 22, 9.7, 5.8, -6, 22);
 }
