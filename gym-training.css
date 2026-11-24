@@ -1,0 +1,19 @@
+#mobile{display:block;right:auto;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom))}
+#mobile .move{display:none}
+#hud #prompt{bottom:max(78px,calc(env(safe-area-inset-bottom) + 55px));white-space:normal;width:max-content}
+#hq1-exit{pointer-events:auto;color:#e2ffdc;border:1px solid #ffffff55;border-radius:22px;padding:10px 13px;background:#0a1215e8;text-decoration:none;font-size:12px;white-space:nowrap}
+#bag-workout{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(420px,calc(100% - 38px));z-index:50;padding:13px;border:1px solid #1bfd9c80;border-radius:16px;background:#081513ed;color:#e2ffdc;pointer-events:auto;text-align:center}
+#bag-workout[hidden],#bag-workout button[hidden]{display:none}
+#bag-workout header{display:flex;justify-content:space-between;align-items:center;gap:7px}
+#bag-workout h2{margin:0;font-size:16px}
+#bag-result,#round-readout{margin:8px 0;font-size:14px}
+#bag-workout button{min-height:42px;border:1px solid #3e6a55;border-radius:8px;padding:5px 11px;background:#142c23;color:#e2ffdc;touch-action:manipulation}
+#bag-workout button:disabled{opacity:.45}
+#bag-workout .punches{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#bag-workout progress{width:100%;accent-color:#1bfd9c;height:5px;display:block}
+#bag-workout .keys{font-size:11px;color:#bfcfc5;margin:6px 0}
+body.in-training #oneage-controller,body.in-training #mobile{visibility:hidden}
+body.in-training #prompt,body.in-training #info{display:none}
+@media(max-width:550px){#info{display:none}#hq1-exit{font-size:11px;padding:8px}#bag-workout .keys{display:none}}
+.project-preview #hud,.project-preview #oneage-controller{visibility:hidden}
+.project-preview.unavailable #hud{visibility:visible}
