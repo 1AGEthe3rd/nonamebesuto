@@ -12,6 +12,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.m
 import { subscribeInput } from './shared/gamepad.mjs';
 import { PadReader, emptyInput } from './shared/gamepad-model.mjs';
 import { createRound } from './training.mjs';
+import { addMlkGymEnvironment } from './mlk-gym-environment.mjs';
 import { returnToHQ1 } from './venue-entry.mjs';
 const studioPreview = new URLSearchParams(location.search).get('preview') === '1';
 if (studioPreview) document.body.classList.add('project-preview');
@@ -72,6 +73,8 @@ if(!cafe){
   box(.32,.018,.18,9.5,.13,2.87,0x1bfd9c);
   marker('Weigh-in station',9.5,1.4,3.8,'Guest preview. Weigh-in records are not collected.');
   light(0x1bfd9c,36,0,6,-6,25);light(0xffffff,18,-9,6,4,20);light(0x6d9ac0,15,9,6,3,20);
+  // Architectural scenery only; original ring/bags/lockers/training/coordinates remain.
+  addMlkGymEnvironment(THREE, scene, { box, cyl, text, light });
 }else{
   // NLC: listening café, glowing window/city skyline, bar, tables and record booth.
   box(11,1.2,2.3,-7,.9,-10,0x6c4735);box(11,.14,2.7,-7,1.56,-10,0xc08a59);for(let x of [-11,-8,-5,-2]){cyl(.35,.4,.8,x,2.02,-10,0xe3d2b5);cyl(.16,.16,.1,x,2.47,-10,0x513c31)}
