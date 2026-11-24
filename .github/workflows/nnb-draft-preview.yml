@@ -69,6 +69,18 @@ jobs:
               if(!atBag)failed=true;
               await page.screenshot({path:'review/nnb-heavy-bag-round-desktop.png',timeout:15000});
               if(!panelVisible)failed=true;
+              if(panelVisible){
+                await page.keyboard.press('q');
+                await page.waitForTimeout(330);
+                await page.keyboard.press('r');
+                await page.waitForTimeout(30800);
+                const complete=await page.locator('#repeat-round').isVisible();
+                const summary=await page.locator('#guest-progress').textContent();
+                const readout=await page.locator('#bag-result').textContent();
+                console.log('completed-round',{complete,summary,readout});
+                await page.screenshot({path:'review/nnb-completed-round-desktop.png',timeout:15000});
+                if(!complete||!summary?.includes('1 round')||!readout?.includes('Round complete'))failed=true;
+              }
             } catch(error){failed=true;console.error('heavy-bag-interaction',error);}
             await context.close();
             await browser.close();
