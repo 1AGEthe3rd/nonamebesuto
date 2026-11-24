@@ -1,0 +1,103 @@
+name: Preview NNB NE MLK neighborhood gym
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check original boxing and added architecture modules
+        run: |
+          node --check mlk-gym-environment.mjs
+          node --check training.mjs
+          node --check venue-entry.mjs
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - name: Host draft (no production publication)
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/nnb-mlk-server.log 2>&1 &
+          sleep 2
+      - name: Render gym and check preserved interaction
+        run: |
+          mkdir -p review
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({
+              executablePath:'/usr/bin/google-chrome',headless:true,
+              args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
+            });
+            let failed=false;
+            for(const [name,width,height,mobile] of [
+              ['desktop',1366,768,false],
+              ['iphone-portrait',390,844,true],
+              ['iphone-landscape',844,390,true]
+            ]){
+              const context=await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,deviceScaleFactor:1});
+              const page=await context.newPage();
+              const errors=[];page.on('pageerror',error=>errors.push(error.message));
+              try{
+                await page.goto('http://127.0.0.1:4173/?preview=1',{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(4500);
+                const state=await page.evaluate(()=>{
+                  const canvas=document.querySelector('body > canvas');
+                  return {canvas:!!canvas,webgl:!!(canvas?.getContext('webgl2')||canvas?.getContext('webgl')),
+                    fallback:document.body.classList.contains('unavailable')};
+                });
+                console.log(name,state,errors);
+                await page.screenshot({path:'review/nnb-mlk-'+name+'.png',timeout:15000});
+                if(!state.canvas||!state.webgl||state.fallback||errors.length)failed=true;
+              }catch(error){failed=true;console.error(name,error);}
+              await context.close();
+            }
+            // Functional smoke test walks toward the original heavy bag, not a simulated round.
+            const context=await browser.newContext({viewport:{width:1366,height:768},deviceScaleFactor:1});
+            const page=await context.newPage();
+            const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            try{
+              await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForTimeout(2000);
+              // Rotate in place to inspect the storefront windows and exterior.
+              await page.mouse.move(1180,350);
+              await page.mouse.down();
+              await page.mouse.move(160,350,{steps:25});
+              await page.mouse.up();
+              await page.waitForTimeout(550);
+              await page.screenshot({path:'review/nnb-mlk-street-facing-desktop.png',timeout:15000});
+              // Reload to restore the approved camera orientation before walking.
+              await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+              await page.waitForTimeout(1500);
+              await page.keyboard.down('w');await page.keyboard.down('a');
+              let atBag=false;
+              for(let step=0;step<60&&!atBag;step++){
+                await page.waitForTimeout(200);
+                atBag=(await page.locator('#prompt').textContent()||'').includes('Heavy bag training');
+              }
+              await page.keyboard.up('w');await page.keyboard.up('a');
+              if(atBag)await page.keyboard.press('e');
+              const opened=await page.locator('#bag-workout').isVisible();
+              if(opened){await page.keyboard.press('q');await page.waitForTimeout(280);await page.keyboard.press('r');}
+              await page.waitForTimeout(350);
+              console.log('preserved-boxing',{atBag,opened,errors});
+              await page.screenshot({path:'review/nnb-mlk-bag-interaction-desktop.png',timeout:15000});
+              if(!atBag||!opened||errors.length)failed=true;
+            }catch(error){failed=true;console.error('original-gym-interaction',error);}
+            await context.close();
+            await browser.close();
+            if(failed)process.exitCode=1;
+          })().catch(error=>{console.error(error);process.exitCode=1});
+          NODE
+      - name: Upload actual draft renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nnb-mlk-gym-draft-renders
+          path: review/
+          if-no-files-found: warn
+          retention-days: 14
