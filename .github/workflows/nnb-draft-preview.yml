@@ -1,0 +1,97 @@
+name: Render NNB gym draft preview
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - name: Serve draft (not production)
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/nnb-server.log 2>&1 &
+          sleep 2
+      - name: Capture actual gym WebGL on desktop and phone viewports
+        run: |
+          mkdir -p review
+          node <<'NODE'
+          const {chromium} = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({
+              executablePath:'/usr/bin/google-chrome',headless:true,
+              args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
+            });
+            let failed=false;
+            for (const [name,width,height,mobile] of [
+              ['desktop',1366,768,false],['iphone-portrait',390,844,true],['iphone-landscape',844,390,true]
+            ]) {
+              const context=await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,deviceScaleFactor:1});
+              const page=await context.newPage();
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              try {
+                await page.goto('http://127.0.0.1:4173/?preview=1',{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(6000);
+                const state=await page.evaluate(()=>{
+                  const canvas=document.querySelector('body > canvas');
+                  return {canvas:!!canvas,gl:!!(canvas?.getContext('webgl2')||canvas?.getContext('webgl')),
+                    fallback:document.body.classList.contains('unavailable')};
+                });
+                await page.screenshot({path:'review/nnb-'+name+'.png',timeout:15000});
+                console.log(name,state,errors);
+                if(!state.canvas||!state.gl||state.fallback||errors.length)failed=true;
+              } catch(error){failed=true;console.error(name,error);}
+              await context.close();
+            }
+            // Exercise the actual draft gym's keyboard route to the heavy-bag marker.
+            const context=await browser.newContext({viewport:{width:1366,height:768},deviceScaleFactor:1});
+            const page=await context.newPage();
+            try {
+              await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForTimeout(2500);
+              await page.keyboard.down('w'); await page.keyboard.down('a');
+              let atBag=false;
+              for(let step=0;step<120&&!atBag;step++){
+                await page.waitForTimeout(200);
+                atBag=(await page.locator('#prompt').textContent()||'').includes('Heavy bag training');
+              }
+              await page.keyboard.up('w'); await page.keyboard.up('a');
+              if(atBag)await page.keyboard.press('e');
+              await page.waitForTimeout(550);
+              const panelVisible=await page.locator('#bag-workout').isVisible();
+              console.log('heavy-bag-training-panel',{atBag,panelVisible});
+              if(!atBag)failed=true;
+              await page.screenshot({path:'review/nnb-heavy-bag-round-desktop.png',timeout:15000});
+              if(!panelVisible)failed=true;
+              if(panelVisible){
+                await page.keyboard.press('q');
+                await page.waitForTimeout(330);
+                await page.keyboard.press('r');
+                await page.waitForTimeout(30800);
+                const complete=await page.locator('#repeat-round').isVisible();
+                const summary=await page.locator('#guest-progress').textContent();
+                const readout=await page.locator('#bag-result').textContent();
+                console.log('completed-round',{complete,summary,readout});
+                await page.screenshot({path:'review/nnb-completed-round-desktop.png',timeout:15000});
+                if(!complete||!summary?.includes('1 round')||!readout?.includes('Round complete'))failed=true;
+              }
+            } catch(error){failed=true;console.error('heavy-bag-interaction',error);}
+            await context.close();
+            await browser.close();
+            if(failed)process.exitCode=1;
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          NODE
+      - name: Upload draft screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nnb-draft-webgl-preview
+          path: review/
+          if-no-files-found: warn
+          retention-days: 14

@@ -3,7 +3,7 @@
 </style><link rel="stylesheet" href="./gym-training.css"></head><body><div id="hud"><div id="top"><div><div class="brand">NO NAME BESUTO</div><div class="sub">THE FIGHTER LIFESTYLE · WORLD 001</div></div><div id="buttons"><a id="hq1-exit" href="https://1age.space/hq1/">HQ1 exit</a><button id="mute">SOUND OFF</button><button id="vr">ENTER VR</button><button id="help">CONTROLS</button></div></div><div id="center"></div><div id="prompt">W A S D · WALK &nbsp; | &nbsp; DRAG · LOOK &nbsp; | &nbsp; E · INTERACT</div><div id="info">TRAINING FACILITY · WORLD PROTOTYPE 001</div><div id="mobile"><div class="move"><button data-key="KeyW">▲</button><button data-key="KeyA">◀</button><button data-key="KeyS">▼</button><button data-key="KeyD">▶</button></div><button id="interact">USE</button></div><div id="intro"><div class="card"><div style="color:#1bfd9c;letter-spacing:.28em;font-size:12px">1AGETHE3RD · VIRTUAL DESTINATIONS</div><h1>NO NAME BESUTO</h1><p>Step straight into the fighter lifestyle. Explore the training ring, heavy bags, and fighter lockers. This is the first walkable gym prototype; gameplay comes next.</p><button id="enter">ENTER WORLD →</button><p style="font-size:11px">Desktop: WASD + mouse/drag · Mobile: touch controls · Headset: VR when supported</p></div></div><div id="panel"><button id="close">CLOSE ✕</button><h2 id="paneltitle"></h2><p id="paneltext"></p></div><section id="bag-workout" aria-label="Heavy bag training" hidden>
 <header><h2>Heavy bag</h2><button id="leave-round" type="button">Leave</button></header>
 <p id="round-readout" aria-live="off"></p><progress id="round-timing" max="1" value="0" aria-label="Beat timing"></progress>
-<p id="bag-result" role="status"></p>
+<p id="bag-result" role="status"></p><p id="guest-progress" aria-live="polite">Guest session · No rounds completed</p>
 <div class="punches"><button type="button" data-punch="left">Left punch</button><button type="button" data-punch="right">Right punch</button></div>
 <button id="repeat-round" type="button" hidden>Train again</button><p class="keys">Q / R · punch &nbsp; · &nbsp; L1 / R1 · controller</p>
 </section></div>
@@ -11,7 +11,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 import { subscribeInput } from './shared/gamepad.mjs';
 import { PadReader, emptyInput } from './shared/gamepad-model.mjs';
-import { createRound } from './training.mjs';
+import { createRound, createGuestProgress } from './training.mjs';
 import { returnToHQ1 } from './venue-entry.mjs';
 const studioPreview = new URLSearchParams(location.search).get('preview') === '1';
 if (studioPreview) document.body.classList.add('project-preview');
@@ -99,6 +99,14 @@ const resultText = document.querySelector('#bag-result');
 const timing = document.querySelector('#round-timing');
 const replay = document.querySelector('#repeat-round');
 const punches = [...document.querySelectorAll('[data-punch]')];
+const guestProgressText = document.querySelector('#guest-progress');
+const guestProgress = createGuestProgress();
+function updateGuestProgress() {
+  const { rounds, bestScore, totalHits } = guestProgress.read();
+  guestProgressText.textContent = rounds
+    ? `Guest session · ${rounds} round${rounds === 1 ? '' : 's'} · Best ${bestScore} points · ${totalHits} hits`
+    : 'Guest session · No rounds completed';
+}
 const gamepad = new PadReader();
 let controls = emptyInput(), round, startedAt, lastReadout = '', sway = 0, impulse = 0;
 
@@ -161,6 +169,8 @@ function tickTraining(dt) {
   const readout = Math.ceil(state.remaining / 1000) + 's · ' + state.score + ' points · ' + state.hits + ' hits';
   if (readout !== lastReadout) roundText.textContent = lastReadout = readout;
   if (state.complete && replay.hidden) {
+    guestProgress.record(state);
+    updateGuestProgress();
     resultText.textContent = 'Round complete · ' + state.score + ' points';
     replay.hidden = false;
     for (const button of punches) button.disabled = true;

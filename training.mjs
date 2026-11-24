@@ -29,3 +29,29 @@ export function createRound(start) {
     },
   };
 }
+
+
+/**
+ * Non-persistent guest progression for the current visit only.
+ * No accounts, wallets, weigh-in data, tracking, or browser storage.
+ */
+export function createGuestProgress() {
+  let rounds = 0;
+  let bestScore = 0;
+  let totalHits = 0;
+  const read = () => ({ rounds, bestScore, totalHits });
+  return {
+    read,
+    record(finishedRound) {
+      if (!finishedRound?.complete || !Number.isSafeInteger(finishedRound.score) ||
+          finishedRound.score < 0 || !Number.isSafeInteger(finishedRound.hits) ||
+          finishedRound.hits < 0) {
+        throw new TypeError('A valid completed training round is required');
+      }
+      rounds += 1;
+      bestScore = Math.max(bestScore, finishedRound.score);
+      totalHits += finishedRound.hits;
+      return read();
+    },
+  };
+}
