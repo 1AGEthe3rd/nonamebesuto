@@ -114,7 +114,7 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
 
   // Exposed ceiling, transverse beams and warm suspended workshop light strips.
   for (const z of [-13.4, -7.6, -1.8, 4.0, 9.8, 14.2]) {
-    box(29.45, .26, .26, 0, 6.84, z, blackened(steel));
+    box(29.45, .26, .26, 0, 6.84, z, steel);
     for (const x of [-10, 0, 10]) {
       box(.07, .38, .07, x, 6.59, z, 0x586060);
     }
@@ -128,7 +128,6 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
     }
   }
 
-  function blackened(value) { return value; }
 
   // Daylight storefront: working central exit remains unobstructed.
   const glass = new THREE.MeshStandardMaterial({
@@ -153,8 +152,8 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
     box(.12, 2.55, .21, x, 2.17, 15.31, 0x778887);
     box(.20, .45, .17, x, 1.33, 15.17, 0xbcb9a9);
   }
-  text('EXIT TO HQ1', 0, 4.05, 15.14, .20, '#e9dfbd', Math.PI);
-  box(1.48, .42, .14, 0, 4.1, 15.12, 0x274734);
+  box(1.65, .50, .13, 0, 4.09, 15.31, 0x274734);
+  text('EXIT TO HQ1', 0, 4.05, 15.13, .20, '#e9dfbd', Math.PI);
 
   // A glimpse of NE MLK outside the glass — a conceptual street, not exact GIS.
   // The scene extends behind the existing exit, without modifying HQ1's own map.
@@ -172,6 +171,27 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
     );
     crown.position.set(x, 4.65, 21);
     scene.add(crown);
+  }
+  // Scenic dusk sky and storefront daylight exist only beyond the gym windows.
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 16;
+  skyCanvas.height = 256;
+  const skyCtx = skyCanvas.getContext('2d');
+  if (skyCtx) {
+    const gradient = skyCtx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, '#405c77');
+    gradient.addColorStop(.66, '#8fa8ad');
+    gradient.addColorStop(1, '#d4b99a');
+    skyCtx.fillStyle = gradient;
+    skyCtx.fillRect(0, 0, 16, 256);
+    const skyMap = new THREE.CanvasTexture(skyCanvas);
+    skyMap.colorSpace = THREE.SRGBColorSpace;
+    const sky = new THREE.Mesh(
+      new THREE.PlaneGeometry(120, 48),
+      new THREE.MeshBasicMaterial({map:skyMap, side:THREE.DoubleSide, fog:false})
+    );
+    sky.position.set(0, 11, 62);
+    scene.add(sky);
   }
   // Stylized anonymous commercial facades across the street.
   for (const [x, width, height, color] of [
@@ -231,6 +251,9 @@ export function addMlkGymEnvironment(THREE, scene, { box, cyl, text, light }) {
 
   // The green NNB identity becomes an accent over warm industrial light.
   // Existing green ring ropes, bag response glow, markers and logo remain unchanged.
+  const daylight = new THREE.DirectionalLight(0xdbe9e9, .60);
+  daylight.position.set(2, 16, 30);
+  scene.add(daylight);
   light(0xffedcc, 28, -4.5, 5.85, 8.5, 25);
   light(0xffe1b4, 22, 9.7, 5.8, -6, 22);
 }
